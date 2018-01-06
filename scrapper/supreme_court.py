@@ -92,7 +92,7 @@ class SupremeCourt:
                 if current < first:
                     break
 
-        def get_decisions_by_day_open_case(self, day):
+        def get_decisions_by_day_case_opened(self, day):
             day = get_date(day)
             cases = self.get_cases_by_day_open(day)
             self.storage.save_records("cases-by-day-open", date_to_path(day), cases)
@@ -105,6 +105,9 @@ class SupremeCourt:
                     self.storage.save_records("confidential_cases", "%s/%s" % (year, number), [case])
                     print "Confidential"
                     continue
+
+                self.get_case_metadata(case)
+
 
                 decisions = self.get_decisions_by_case(year, number)
                 print "%s decisions" % len(decisions)

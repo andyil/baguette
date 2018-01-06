@@ -173,7 +173,7 @@ class MetadataParser:
             u"אירוע אחרון": "last_event"
         }
         if heb not in translation:
-            print "Missing!", heb
+            print "Missing translation!", heb
             exit(0)
         return translation[heb]
 

@@ -26,8 +26,13 @@ class Webclient:
     def download_url(self, url, retries = 5):
         import time
 
+        headers = {
+            # Identify as a browser or you shall be blocked
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
+        }
+
         for retry in xrange(0, retries):
-            req = urllib2.Request(url)
+            req = urllib2.Request(url, None, headers)
             try:
                 response = urllib2.urlopen(req)
             except urllib2.HTTPError, e:
