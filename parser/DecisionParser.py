@@ -3,6 +3,7 @@
 
 
 from bs4 import BeautifulSoup
+import Translations
 
 class DecisionParser:
 
@@ -38,16 +39,36 @@ class DecisionParser:
             return None
         return r
 
+    def has_judge_honor_title(self, s):
+        for t in Translations.judge_honor_title:
+            if t in s:
+                return True
+        return False
+
     def find_inside_table(self, msoTables):
         for t in msoTables[:3]:
             all_cells = t.find_all("td")
             for cell in all_cells:
                 s = "".join(cell.strings)
                 if u"בפני:" in s or u"לפני:" in s:
-                    parent = cell.parent
-                    judge = "".join(parent.find_all("td")[1].strings)
-                    judge = judge.strip()
-                    return [self.parse_judge_string(judge)]
+                    parent = cell.parent.parent
+                    tds = parent.find_all("td")
+                    judges = []
+
+                    for td in tds:
+                        strings = list(td.strings)
+                        strings = [s for s in strings if s.strip()]
+                        if not u"כבוד" in "".join(strings):
+                            continue
+                        for ind, s in enumerate(strings):
+                            if s in Translations.judge_honor_title:
+                                j = "%s %s" % (s, strings[ind+1])
+                                judges.append(self.parse_judge_string(j))
+                            elif self.has_judge_honor_title(s):
+                                judges.append(self.parse_judge_string(s))
+                            else:
+                                continue
+                    return judges
 
 
     def has_bifnei(self, table):
@@ -79,32 +100,29 @@ class DecisionParser:
     def parse_judge_string(self, s):
 
         s = s.replace("\n", " ")
-        parts = [_ for _ in s.split(" ") if _]
 
+        for title in Translations.judge_honor_title.keys():
+            if s.startswith("%s " % title):
+                j_full_title = title.replace(u"כבוד", "").strip()
+                s = s.replace(title, "")
+                s = s.strip()
+                break
 
-        j_full_title = parts[1]
-        offset = 2
-        if j_full_title == u"המשנה":
-            j_full_title =" ".join(parts[1:3])
-            offset = 3
-        j_title = j_full_title
-        j_name = " ".join(parts[offset:])
-        gender = "m"
-        if len(j_full_title) == 0:
-            print ""
-        elif j_full_title[-1] == u"ה" or j_full_title[-1] == u"ת":
-            gender = "f"
-            j_title = j_full_title[:-1]
-        if j_full_title[0]== u"ה":
-            j_full_title = j_full_title[1:]
-        if j_title[0] == u"ה":
-            j_title = j_title[1:]
-        return {"name": j_name, "title": j_title, "gender": gender, "full_title": j_full_title}
+        j_name = s
+        gender = Translations.judge_honor_title[title]["gender"]
+        j_title = Translations.judge_honor_title[title]["english"]
+
+        retired = False
+        if Translations.retired in j_name:
+            j_name = j_name.replace(Translations.retired, "").strip()
+            retired = True
+        return {"name": j_name, "title": j_title, "gender": gender, "full_title": j_full_title, "retired": retired}
 
 if False:
 
-    f = r"C:\Users\andy\supreme-court\documents\html\2010\00751\0001-2012-02-08.html"
+    f = r"C:\Users\andy\supreme-court\documents\html\2010\00232\0008-2012-09-19.html"
     dp = DecisionParser(file(f, "r").read().decode('windows-1255', 'ignore'))
     judges = dp.get_judges()
     print judges
     exit(0)
+    #C:\Users\andy\supreme-court\documents\metadata\2010\31.html

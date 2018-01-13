@@ -52,6 +52,21 @@ decisions = {
     u"פסק-דין" : "verdict"
 }
 
+judge_honor_title = {
+    u"כבוד השופט": {"gender": "male", "english": "Justice"},
+    u"כבוד השופטת": {"gender": "female", "english": "Justice"},
+    u"כבוד הנשיאה": {"gender": "female", "english": "President"},
+    u"כבוד הנשיא": {"gender": "male", "english": "President"},
+    u"כבוד המשנה לנשיא": {"gender": "male", "english": "Vice President"},
+    u"כבוד המשנָה לנשיא": {"gender": "female", "english": "Vice President"},
+    u"כבוד המשנה לנשיאה": {"gender": "male", "english": "Vice President"},
+    u"כבוד המשנָה לנשיאה": {"gender": "female", "english": "Vice President"},
+    u"כבוד הרשם": {"gender": "male", "english": "rasham"},
+    u"כבוד הרשמת": {"gender": "female", "english": "rasham"}
+}
+
+retired = u"(בדימ')"
+
 missing_translations = {}
 
 def translate_issue_type(issue_type_hebrew):
