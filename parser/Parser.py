@@ -5,6 +5,7 @@ from os import walk
 import MetadataParser
 import json
 import Out
+import time
 
 
 def load_decisions(directory, case_num, year):
@@ -34,6 +35,7 @@ class Parser:
     def parse(self):
         base = join(self.directory, "documents", "metadata")
         total = 0
+        started = time.time()
         for dirName, subdirList, fileList in walk(base):
             print('Found directory: %s' % dirName)
             numbers = [int(x.replace(".html", "")) for x in fileList]
@@ -44,7 +46,8 @@ class Parser:
                 full_path = join(dirName, fname)
                 total += 1
                 self.parse_file(full_path)
-                print "Parsed %s %s" % (total, full_path)
+                elapsed = int(100*(time.time() - started)) / 100
+                print "Parsed %s %s (%s s)" % (total, full_path, elapsed)
 
         self.out.close()
 

@@ -96,3 +96,6 @@ def is_knesset_member(name):
         if name.startswith(mk):
             return True
     return False
+
+BIFNEI = u"בפני:"
+LIFNEI = u"לפני:"

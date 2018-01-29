@@ -38,6 +38,7 @@ CaseFields = [
         "justice7",
         "justice8",
         "justice8",
+        "justice9",
         "justice10",
         "justice11",
         "justice12",
@@ -45,7 +46,8 @@ CaseFields = [
         "justice14",
         "justice15",
         "Njudges",
-        "Npages"
+        "Npages",
+        "Nwords"
 ]
 
 JudgesFields = [
@@ -98,7 +100,8 @@ JudgesFields = [
         "justice14",
         "justice15",
         "Njudges",
-        "Npages"
+        "Npages",
+        "Nwords"
 ]
 
 class Case:
@@ -150,6 +153,7 @@ class Case:
         justice15 = ""
         justice14 = ""
         Njudges = ""
+        Nwords = ""
 
 
 class Justice:

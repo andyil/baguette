@@ -1,15 +1,19 @@
-
 # -*- coding: utf-8 -*-
 
 
 from bs4 import BeautifulSoup
 import Translations
+import re
 
 class DecisionParser:
 
     def __init__(self, html):
         self.soup = BeautifulSoup(html, 'html.parser')
 
+    def get_words(self):
+        strings = list(self.soup.stripped_strings)
+        joined = "".join(strings)
+        return len(joined.split(" "))
 
     def get_judges(self):
         msoTables = self.soup.find_all("table", class_="MsoNormalTable")
@@ -24,12 +28,26 @@ class DecisionParser:
         return self.judges_by_body_ruller()
 
     def judges_by_body_ruller(self):
+
         r = []
         brs = self.soup.find_all("p", class_="BodyRuller")
         for br in brs:
             sp = br.span
             stripped_strings = list(sp.stripped_strings)
             if not stripped_strings:
+                continue
+            if stripped_strings[0] in (Translations.BIFNEI, Translations.LIFNEI):
+                stripped_strings = stripped_strings[1:]
+                if not stripped_strings:
+                    continue
+
+            joined = unicode("").join(stripped_strings)
+            joined = joined.replace("\n", " ")
+            if joined in (u"בפני:", u"לפני:"):
+                continue
+            if joined.startswith(Translations.BIFNEI) or joined.startswith(Translations.LIFNEI):
+                pass
+            if ":" in joined:
                 break
             j = stripped_strings[-1]
             parsed = self.parse_judge_string(j)
@@ -61,7 +79,7 @@ class DecisionParser:
                         if not u"כבוד" in "".join(strings):
                             continue
                         for ind, s in enumerate(strings):
-                            if s in Translations.judge_honor_title:
+                            if unicode(s).strip() in Translations.judge_honor_title:
                                 j = "%s %s" % (s, strings[ind+1])
                                 judges.append(self.parse_judge_string(j))
                             elif self.has_judge_honor_title(s):
@@ -98,15 +116,21 @@ class DecisionParser:
         return judges
 
     def parse_judge_string(self, s):
-
+        import re
         s = s.replace("\n", " ")
-
+        s = re.sub(" +", " ", s)
+        j_full_title = None
         for title in Translations.judge_honor_title.keys():
             if s.startswith("%s " % title):
                 j_full_title = title.replace(u"כבוד", "").strip()
                 s = s.replace(title, "")
                 s = s.strip()
                 break
+        else:
+            pass
+
+        if j_full_title is None:
+            pass
 
         j_name = s
         gender = Translations.judge_honor_title[title]["gender"]
@@ -116,12 +140,13 @@ class DecisionParser:
         if Translations.retired in j_name:
             j_name = j_name.replace(Translations.retired, "").strip()
             retired = True
+        j_name = re.sub(" +", " ", j_name)
         return {"name": j_name, "title": j_title, "gender": gender, "full_title": j_full_title, "retired": retired}
 
 if False:
 
-    f = r"C:\Users\andy\supreme-court\documents\html\2010\00232\0008-2012-09-19.html"
-    dp = DecisionParser(file(f, "r").read().decode('windows-1255', 'ignore'))
+    f = r"C:/Users/andy/supreme-court/documents/html/2010/01213/0015-2012-02-23.html"
+    dp = DecisionParser(file(f, "r").read().decode('Windows-1255', 'strict'))
     judges = dp.get_judges()
     print judges
     exit(0)

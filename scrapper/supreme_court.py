@@ -101,12 +101,7 @@ class SupremeCourt:
                 year = case.get_year()
                 number = case.get_case_number()
 
-                if case.is_confidential():
-                    self.storage.save_records("confidential_cases", "%s/%s" % (year, number), [case])
-                    print "Confidential"
-                    continue
 
-                self.get_case_metadata(case)
 
 
                 decisions = self.get_decisions_by_case(year, number)
@@ -114,7 +109,15 @@ class SupremeCourt:
                 self.storage.save_records("decisions-by-case", "%s/%s" % (year, number), decisions)
                 for i, d in enumerate(decisions):
                     document = self.download_document(d, SupremeCourt.TYPE_HTML)
-                    self.save_document(i, document)
+                    if document is not None:
+                        self.save_document(i, document)
+
+                if case.is_confidential():
+                    self.storage.save_records("confidential_cases", "%s/%s" % (year, number), [case])
+                    print "Confidential"
+                    continue
+
+                self.get_case_metadata(case)
 
 
         def get_cases_by_day_open(self, day):
@@ -126,8 +129,11 @@ class SupremeCourt:
                                "PublishFrom": "%sT21:00:00.000Z" % s, "PublishTo": "%sT22:00:00.000Z" % s,
                                "translationDateType": None, "translationPublishFrom": "2017-10-31T17:24:27.461Z",
                                "translationPublishTo": "2017-10-31T17:24:27.461Z"}, "lang": "1"}
-
-            r = self.webclient.query_server("GetCasesByDateOpen", request)
+            import urllib2
+            try:
+                r = self.webclient.query_server("GetCasesByDateOpen", request)
+            except urllib2.HTTPError, e:
+                pass
             return [Case(x) for x in r]
 
         def get_decisions_by_case(self, year, caseNum):
@@ -192,8 +198,12 @@ class SupremeCourt:
             return r
 
         def download_document(self, decision, document_type):
+            if decision.Path is None or decision.FileName is None:
+                return None
             url = "https://supremedecisions.court.gov.il/Home/Download?path=%s&fileName=%s&type=%s" % (decision.Path, decision.FileName, document_type.type_number)
             text = self.webclient.download_url(url)
+            if text is None:
+                return None
             return Document(decision, text, document_type)
 
         def save_document(self, index, document):
@@ -210,3 +220,6 @@ class SupremeCourt:
                 self.storage.save_document(extension, key, extension, document.text)
             else:
                 self.storage.save_document("error-%s" % extension, key, extension, "")
+
+        def close(self):
+            pass

@@ -134,22 +134,26 @@ class Out:
 
         d = record["decisions"]
         last_decision = self.get_last_decision(d)
-        last_decision_pages = ""
         judges_rows = []
         if last_decision:
             if "full_path" in last_decision:
-                text = file(last_decision["full_path"], "r").read()
-                dp = DecisionParser.DecisionParser(text)
-                judges= dp.get_judges()
-                o.Njudges = len(judges)
-                for ji, j in enumerate(judges):
-                    setattr(o, "justice%s" % (ji+1), j["name"])
-                    judge_obj = models.Justice()
-                    judge_obj.Name = j["name"]
-                    judge_obj.Gender = j["gender"]
-                    judge_obj.Retired = j["retired"]
-                    judge_obj.Title = j["title"]
-                    judges_rows.append(judge_obj)
+                if exists(last_decision["full_path"]):
+
+                    text = file(last_decision["full_path"], "r").read()
+                    dp = DecisionParser.DecisionParser(text)
+                    judges= dp.get_judges()
+                    words = dp.get_words()
+                    o.Nwords = words
+                    judges = judges or []
+                    o.Njudges = len(judges)
+                    for ji, j in enumerate(judges):
+                        setattr(o, "justice%s" % (ji+1), j["name"])
+                        judge_obj = models.Justice()
+                        judge_obj.Name = j["name"]
+                        judge_obj.Gender = j["gender"]
+                        judge_obj.Retired = j["retired"]
+                        judge_obj.Title = j["title"]
+                        judges_rows.append(judge_obj)
             date_final_decision = self.dateOpenToDate(last_decision['VerdictsDtString'])
             o.dateFinalDecision = date_final_decision
             o.Npages = last_decision["Pages"]
@@ -167,7 +171,6 @@ class Out:
             lissue = "%s %s" % (gi["section"], parts[0])
             o.LIssue = lissue
 
-        o.Npages =last_decision_pages
 
         return o, judges_rows
 

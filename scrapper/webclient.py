@@ -1,6 +1,7 @@
 
 import urllib2
 from json import dumps, loads
+import socket
 
 class Webclient:
 
@@ -35,7 +36,10 @@ class Webclient:
             req = urllib2.Request(url, None, headers)
             try:
                 response = urllib2.urlopen(req)
-            except urllib2.HTTPError, e:
+            except (socket.error, urllib2.HTTPError), e:
+                if isinstance(e, urllib2.HTTPError) and hasattr(e, "code") and e.code == 404:
+                    print "404 Not found: %s" % url
+                    return None
                 sleeptime = 2**retry
                 print "Failed %s in retry %s" % (url, retry)
                 time.sleep(sleeptime)

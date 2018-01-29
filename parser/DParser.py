@@ -26,9 +26,10 @@ class DParser:
                     dp = DecisionParser.DecisionParser(html)
                     judges = dp.get_judges()
                     if judges == None:
-                        print ""
-                    for j in judges:
-                        print "\t%s" % j["name"]
+                        print "0 judges"
+                    else:
+                        for j in judges:
+                            print "\t%s" % j["name"]
 
 
 
