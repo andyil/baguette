@@ -1,19 +1,24 @@
 # -*- coding: utf-8 -*-
 
 from datetime import date, timedelta
-from webclient import Webclient
-from storage import Storage
-
+from baguette.scrapper.webclient import Webclient
+from baguette.scrapper.storage import Storage
+from os import getpid
 
 def get_date(anything):
     if isinstance(anything, date):
         return anything
     if type(anything)== type(0):
         date.fromtimestamp(anything)
-    if type(anything)== type(""):
-        parts = anything.split("-")
-        year, month, day = tuple(map(int, parts))
-        return date(year, month, day)
+    if type(anything) in [type(""), type(u"")]:
+        if "-" in anything:
+            parts = anything.split("-")
+            year, month, day = tuple(map(int, parts))
+            return date(year, month, day)
+        elif "/" in anything:
+            parts = anything.split("/")
+            day, month, year = tuple(map(int, parts))
+            return date(year, month, day)
 
 
 def date_to_string(d):
@@ -71,7 +76,7 @@ class Document:
         self.text = text
         self.type = type
 
-class SupremeCourt:
+class SupremeCourtScrapper:
 
         TYPE_PDF=DocumentType("pdf", 4)
         TYPE_HTML=DocumentType("html", 2)
@@ -81,12 +86,15 @@ class SupremeCourt:
         def __init__(self, output_dir):
             self.webclient = Webclient()
             self.storage = Storage(output_dir)
+            self.cached = 0
+            self.completed = 0
+            self.pid = getpid()
 
         def scrap_time_span(self, first, last):
             current = last
             one_day = timedelta(1)
             while True:
-                print "Scrapping %s" % current
+                print( "Scrapping %s" % current)
                 self.scrap_full_day(current)
                 current = current - one_day
                 if current < first:
@@ -94,47 +102,101 @@ class SupremeCourt:
 
         def get_decisions_by_day_case_opened(self, day):
             day = get_date(day)
+            if self.storage.exists("cases-by-day-open", date_to_path(day)):
+                self.cached += 1
+                print(f'[{self.pid}] Already done {day}, cached {self.cached}'
+                      f', completed {self.completed}')
+                return
+
             cases = self.get_cases_by_day_open(day)
-            self.storage.save_records("cases-by-day-open", date_to_path(day), cases)
-            print "got %s cases" % len(cases)
+            if cases is None:
+                cases = self.get_cases_by_day_open_error_day(day)
+            print(f'[{self.pid}] day {day} got {len(cases)} cases')
             for case in cases:
-                year = case.get_year()
-                number = case.get_case_number()
+                self._complete_case_scrapping(case)
 
+            self.completed += 1
+            self.storage.save_records("cases-by-day-open", date_to_path(day), cases)
+            print(f'[{self.pid}] Completed {day} Cached {self.cached} Completed {self.completed}')
 
+        def _complete_case_scrapping(self, case):
+            year = case.get_year()
+            number = case.get_case_number()
 
+            print(f'[{self.pid}] Scrapping case {number}/{year}')
+            decisions = self.get_decisions_by_case(year, number)
 
-                decisions = self.get_decisions_by_case(year, number)
-                print "%s decisions" % len(decisions)
-                self.storage.save_records("decisions-by-case", "%s/%s" % (year, number), decisions)
-                for i, d in enumerate(decisions):
-                    document = self.download_document(d, SupremeCourt.TYPE_HTML)
-                    if document is not None:
-                        self.save_document(i, document)
+            print(f'[{self.pid}] {number}/{year} has {len(decisions)} decisions')
+            self.storage.save_records("decisions-by-case", "%s/%s" % (year, number), decisions)
+            for i, d in enumerate(decisions):
+                document = self.download_document(d, SupremeCourtScrapper.TYPE_HTML)
+                if document is not None:
+                    self.save_document(i, document)
 
-                if case.is_confidential():
-                    self.storage.save_records("confidential_cases", "%s/%s" % (year, number), [case])
-                    print "Confidential"
+            if case.is_confidential():
+                self.storage.save_records("confidential_cases", "%s/%s" % (year, number), [case])
+                print(f'[{self.pid}] Confidential')
+                return
+
+            self.get_case_metadata(case)
+
+        def get_cases_by_day_open_error_day(self, day):
+            d = get_date(day)
+            previous_day = d - timedelta(1)
+            s = self.get_cases_by_day_open(previous_day)
+            s2 = sorted(s, key=lambda x: x.CaseNum.split(" ")[1])
+            last_case = s2[-1].CaseNum.split(" ")[1]
+            number = last_case.split("/")[0]
+            number = int(number)
+            all_cases = []
+            while True:
+                number = number+1
+                cases = self.get_cases_by_day_open(day, number)
+                if cases is None:
                     continue
+                if len(cases) == 0:
+                    break
+                case = cases[0]
+                caseDt = case.CaseDt
+                caseDate= get_date(caseDt)
+                if d == caseDate:
+                    all_cases.append(case)
+                else:
+                    break
+            return all_cases
 
-                self.get_case_metadata(case)
-
-
-        def get_cases_by_day_open(self, day):
+        def get_cases_by_day_open(self, day, number=None):
             d = get_date(day)
             d = d - timedelta(1)
             s = date_to_string(d)
-            print "getting cases by day open %s" % s
-            request = {"req": {"SearchText": None, "Year": None, "CaseNum": None, "dateType": 2, "publishDate": None,
+            print ("getting cases by day open %s, CaseNum=%s" % (s, number))
+            request = {"req": {"SearchText": None, "Year": None, "CaseNum": number, "dateType": 2, "publishDate": None,
                                "PublishFrom": "%sT21:00:00.000Z" % s, "PublishTo": "%sT22:00:00.000Z" % s,
                                "translationDateType": None, "translationPublishFrom": "2017-10-31T17:24:27.461Z",
                                "translationPublishTo": "2017-10-31T17:24:27.461Z"}, "lang": "1"}
-            import urllib2
+            from urllib import request as req
             try:
                 r = self.webclient.query_server("GetCasesByDateOpen", request)
-            except urllib2.HTTPError, e:
-                pass
+            except req.HTTPError as e:
+                return None
             return [Case(x) for x in r]
+
+        def get_cases_by_year_and_number(self, year, number):
+            print ("getting case {}/{}".format(number, year))
+            request = {"req": {"SearchText": None, "Year": year, "CaseNum": number, "dateType": 2, "publishDate": None,
+                               "PublishFrom": None, "PublishTo": None,
+                               "translationDateType": None, "translationPublishFrom": "2017-10-31T17:24:27.461Z",
+                               "translationPublishTo": "2017-10-31T17:24:27.461Z"}, "lang": "1"}
+            from urllib import request as req
+            try:
+                r = self.webclient.query_server("GetCasesByDateOpen", request)
+            except req.HTTPError as e:
+                return None
+            cases = [Case(x) for x in r]
+
+            for c in cases:
+                self._complete_case_scrapping(c)
+
 
         def get_decisions_by_case(self, year, caseNum):
             query={"document":{"Year":year,"Counsel":[{"Text":"","textOperator":2,"option":"2","Inverted":False,
@@ -150,7 +212,7 @@ class SupremeCourt:
                "CodeSub2":[],"Category1":None,"Category2":None,"Category3":None,"CodeCategory3":[],"Subjects":None,
                    "SubSubjects":None,"SubSubSubjects":None},"lan":1}
 
-            print "get decisions by case %s/%s" % (year, caseNum)
+            print(f'[{self.pid}] get decisions by case {year}/{caseNum}')
             r = self.webclient.query_server("SearchVerdicts", query)
             return [Decision(row) for row in r]
 
@@ -166,7 +228,7 @@ class SupremeCourt:
                     year = "19%s" % year
                 caseNum = case.split("/")[0]
             url = "https://elyon2.court.gov.il/Scripts9/mgrqispi93.dll?Appname=eScourt&Prgname=GetFileDetails_for_new_site&Arguments=-N%s-%s-0" % (year, caseNum.zfill(6))
-            print "case_metadata %s/%s" % (year, caseNum)
+            print ("case_metadata %s/%s" % (year, caseNum))
             the_page = self.webclient.download_url(url)
             self.storage.save_document("metadata", "%s/%s" % (year, caseNum), "html", the_page);
 
@@ -221,5 +283,3 @@ class SupremeCourt:
             else:
                 self.storage.save_document("error-%s" % extension, key, extension, "")
 
-        def close(self):
-            pass

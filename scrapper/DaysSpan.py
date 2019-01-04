@@ -14,7 +14,7 @@ class DaysSpan:
                 first = parts[0]
                 last = parts[1]
             else:
-                raise ValueError, "Range format is YYYY-MM-DD:YYYY-MM-DD"
+                raise ValueError("Range format is YYYY-MM-DD:YYYY-MM-DD")
 
         self.first = self.str_to_date(first)
         self.last = self.str_to_date(last)
@@ -38,10 +38,10 @@ class DaysSpan:
 
     def str_to_date(self, s):
         if s == None or len(s) == 0:
-            raise ValueError, "Date cannot be null or empty"
-        parts = map(int, s.split("-"))
+            raise ValueError( "Date cannot be null or empty")
+        parts = list(map(int, s.split("-")))
         if len(parts) != 3:
-            raise ValueError, "Date needs to be in YYYY-MM-DD format"
+            raise ValueError("Date needs to be in YYYY-MM-DD format")
 
         return datetime.date(parts[0], parts[1], parts[2])
 

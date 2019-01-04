@@ -12,15 +12,22 @@ class Storage:
         path = path.replace("\\", sep)
         return path
 
+    def exists(self, category, key):
+        path = join(self.basedir, self._fix_path(category), self._fix_path(key))
+        filename = f'{path}.txt'
+        e = exists(filename)
+        print(f'Exists {filename} = {e}')
+        return e
+
     def save_records(self, category, key, records):
         path = join(self.basedir, self._fix_path(category), self._fix_path(key))
         filename = "%s.txt" % path
 
         directory = dirname(filename)
         if not exists(directory):
-            makedirs(directory, 0777)
+            makedirs(directory, 0o777)
 
-        f = open(filename, "wb")
+        f = open(filename, "w")
 
         for r in records:
             f.write(dumps(r.__dict__))
@@ -32,7 +39,7 @@ class Storage:
         filename = "%s.%s" % (path, extension)
         directory = dirname(filename)
         if not exists(directory):
-            makedirs(directory, 0777)
+            makedirs(directory, 0o777)
 
         f = open(filename, "wb")
         f.write(document)

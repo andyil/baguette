@@ -1,11 +1,12 @@
 
-import urllib2
+from urllib import request
 from json import dumps, loads
 import socket
+import time
 
 class Webclient:
 
-    def query_server(self, endpoint, request):
+    def query_server(self, endpoint, req):
 
         url = "https://supremedecisions.court.gov.il/Home/%s" % endpoint
 
@@ -18,8 +19,20 @@ class Webclient:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
         }
 
-        req = urllib2.Request(url, dumps(request), headers)
-        response = urllib2.urlopen(req)
+        req = request.Request(url, dumps(req).encode("utf-8"), headers)
+        RETRIES = 5
+        for ii in range(RETRIES):
+            try:
+                response = request.urlopen(req)
+                break
+            except ConnectionResetError as e:
+                print(f'Connection reset {url}')
+                if ii == RETRIES-1:
+                    print(f'Failure with {url}')
+                    raise
+                time.sleep(2**ii)
+
+
         the_page = response.read()
         a = loads(the_page)
         return a["data"]
@@ -32,16 +45,16 @@ class Webclient:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
         }
 
-        for retry in xrange(0, retries):
-            req = urllib2.Request(url, None, headers)
+        for retry in range(0, retries):
+            req = request.Request(url, None, headers)
             try:
-                response = urllib2.urlopen(req)
-            except (socket.error, urllib2.HTTPError), e:
-                if isinstance(e, urllib2.HTTPError) and hasattr(e, "code") and e.code == 404:
-                    print "404 Not found: %s" % url
+                response = request.urlopen(req)
+            except (socket.error, request.HTTPError) as  e:
+                if isinstance(e, request.HTTPError) and hasattr(e, "code") and e.code == 404:
+                    print ("404 Not found: %s" % url)
                     return None
                 sleeptime = 2**retry
-                print "Failed %s in retry %s" % (url, retry)
+                print ("Failed %s in retry %s" % (url, retry))
                 time.sleep(sleeptime)
                 continue
             text = response.read()
