@@ -1,5 +1,5 @@
 
-
+import traceback
 
 class MyCsv:
 
@@ -13,13 +13,22 @@ class MyCsv:
 
     def writerow(self, m):
         items = [self._str(m.get(f, "")) for f in self.fields]
-        self.file.write("\t".join(items).encode("utf8"))
+        try:
+            last = len(items) - 1
+            for i, item in enumerate(items):
+                self.file.write(item)
+                if i < last:
+                    self.file.write('\t')
+        except:
+            print(traceback.format_exc())
+            print()
+            raise
         self.file.write("\n")
 
     def _str(self, x):
         if x == None:
             return ""
-        return unicode(x)
+        return str(x)
 
     def close(self):
         self.file.close()

@@ -41,7 +41,7 @@ class DecisionParser:
                 if not stripped_strings:
                     continue
 
-            joined = unicode("").join(stripped_strings)
+            joined = "".join(stripped_strings)
             joined = joined.replace("\n", " ")
             if joined in (u"בפני:", u"לפני:"):
                 continue
@@ -79,7 +79,7 @@ class DecisionParser:
                         if not u"כבוד" in "".join(strings):
                             continue
                         for ind, s in enumerate(strings):
-                            if unicode(s).strip() in Translations.judge_honor_title:
+                            if str(s).strip() in Translations.judge_honor_title:
                                 j = "%s %s" % (s, strings[ind+1])
                                 judges.append(self.parse_judge_string(j))
                             elif self.has_judge_honor_title(s):
@@ -148,6 +148,6 @@ if False:
     f = r"C:/Users/andy/supreme-court/documents/html/2010/01213/0015-2012-02-23.html"
     dp = DecisionParser(file(f, "r").read().decode('Windows-1255', 'strict'))
     judges = dp.get_judges()
-    print judges
+    print (judges)
     exit(0)
     #C:\Users\andy\supreme-court\documents\metadata\2010\31.html

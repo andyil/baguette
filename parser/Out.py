@@ -2,6 +2,7 @@
 
 from os import makedirs
 from os.path import exists
+import io
 
 import Translations
 import models
@@ -16,16 +17,16 @@ class Out:
     def __init__(self, directory):
         self.directory = directory
         if not exists(directory):
-            makedirs(self.directory, 0777)
+            makedirs(self.directory, 0o777)
 
         interestring = join(directory, "cases.csv")
         all_cases = join(directory, "all-cases.csv")
         judges = join(directory, "judges.csv")
 
 
-        f_int = open(interestring, "w")
-        f_all = open(all_cases, "w")
-        f_judges = open(judges, "w")
+        f_int = io.open(interestring, "w", encoding="utf-8")
+        f_all = io.open(all_cases, "w", encoding="utf-8")
+        f_judges = io.open(judges, "w", encoding="utf-8")
         k = models.CaseFields
         self.csv_all = MyCsv.MyCsv(f_all, k)
         self.csv_int = MyCsv.MyCsv(f_int, k)
@@ -45,7 +46,10 @@ class Out:
         return "%s-%s-%s" % (parts[2], parts[1], parts[0])
 
     def add_record(self, record):
-        case, judges = self.get_case_and_judges(record)
+        r = self.get_case_and_judges(record)
+        if r is None:
+            return
+        case, judges = r
         dict = case.__dict__
 
         interesting = "uninterestingIssueId" not in dict
@@ -57,7 +61,7 @@ class Out:
 
         for k in dict.keys():
             if k not in models.CaseFields:
-                print "Bad field %s" % k
+                print(f"Bad field {k}")
                 exit(0)
         self.csv_all.writerow(dict)
         if interesting:
@@ -138,8 +142,15 @@ class Out:
         if last_decision:
             if "full_path" in last_decision:
                 if exists(last_decision["full_path"]):
-
-                    text = file(last_decision["full_path"], "r").read()
+                    encodings = 'Windows-1255', 'utf-8'
+                    for encoding in encodings:
+                        try:
+                            text = open(last_decision["full_path"], "r", encoding=encoding).read()
+                            break
+                        except UnicodeDecodeError as e:
+                            if encoding == encodings[-1]:
+                                return None
+                            continue
                     dp = DecisionParser.DecisionParser(text)
                     judges= dp.get_judges()
                     words = dp.get_words()
@@ -202,3 +213,21 @@ class Out:
         return None
 
 
+if __name__=='__main__':
+    directory = r'C:\Users\andy\elyon\documents\html\2010\07217'
+    import os
+    from os.path import join
+    for f in os.listdir(directory):
+        fp = join(directory, f)
+        print(fp)
+
+        encodings = 'Windows-1255', 'utf-8'
+        for encoding in encodings:
+            try:
+                t = open(fp, 'r', encoding=encoding).read()
+                print(encoding)
+                break
+            except UnicodeDecodeError as err:
+                if encoding == encodings[-1]:
+                    raise
+                continue

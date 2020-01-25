@@ -2,6 +2,8 @@
 
 from os.path import join
 from os import walk
+import traceback
+
 import MetadataParser
 import json
 import Out
@@ -47,13 +49,13 @@ class Parser:
                 total += 1
                 self.parse_file(full_path)
                 elapsed = int(100*(time.time() - started)) / 100
-                print "Parsed %s %s (%s s)" % (total, full_path, elapsed)
+                print("Parsed %s %s (%s s)" % (total, full_path, elapsed))
 
         self.out.close()
 
 
     def parse_file(self, full_path):
-        f = open(full_path, "r")
+        f = open(full_path, "r", encoding='windows-1255')
         t = f.read()
         f.close()
 
@@ -73,5 +75,5 @@ class Parser:
                 parsed["decisions"] = decisions
                 self.out.add_record(parsed)
 
-p = Parser(r"C:\Users\andy\supreme-court")
+p = Parser(r"C:\Users\andy\elyon")
 p.parse()

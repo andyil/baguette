@@ -263,7 +263,11 @@ class SupremeCourtScrapper:
             if decision.Path is None or decision.FileName is None:
                 return None
             url = "https://supremedecisions.court.gov.il/Home/Download?path=%s&fileName=%s&type=%s" % (decision.Path, decision.FileName, document_type.type_number)
-            text = self.webclient.download_url(url)
+            try:
+                text = self.webclient.download_url(url)
+            except:
+                print(f'Exception downloading {url}')
+                return None
             if text is None:
                 return None
             return Document(decision, text, document_type)
