@@ -1,0 +1,11 @@
+url
+Merged
+merged_first 
+dateFinalDecision 
+numHearings
+Nwords
+dateLArgument
+decisionType
+dateFArgument
+Njudges
+jOpinionWriter
