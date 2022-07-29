@@ -1,7 +1,7 @@
 import argparse
 from os.path import join, expanduser, abspath
-from baguette.scrapper.DaysSpan import DaysSpan
-from baguette.scrapper.supreme_court import SupremeCourtScrapper
+from scrapper.DaysSpan import DaysSpan
+from scrapper.supreme_court import SupremeCourtScrapper
 import multiprocessing
 from os import getpid
 

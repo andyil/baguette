@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from datetime import date, timedelta
-from baguette.scrapper.webclient import Webclient
-from baguette.scrapper.storage import Storage
+from scrapper.webclient import Webclient
+from scrapper.storage import Storage
 from os import getpid
 
 def get_date(anything):
